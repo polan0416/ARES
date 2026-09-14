@@ -1,0 +1,65 @@
+model_name_or_path: ~/.cache/huggingface/model/Meta-Llama-3.1-8B-Instruct
+trust_remote_code: true
+
+dataset_dir: ../../../data/webqsp/sft
+dataset: kgqa_answer_webqsp_train
+eval_dataset: kgqa_answer_webqsp_val
+template: llama3
+enable_thinking: false
+cutoff_len: 4096
+max_samples: null
+overwrite_cache: true
+preprocessing_num_workers: 8
+
+finetuning_type: lora
+lora_rank: 64
+lora_alpha: 128
+lora_target: all
+lora_dropout: 0.05
+create_new_adapter: true
+
+stage: sft
+do_train: true
+do_eval: true
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 8
+dataloader_num_workers: 4
+
+learning_rate: 2.0e-5
+num_train_epochs: 3
+max_steps: -1
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+optim: adamw_torch
+weight_decay: 0.01
+max_grad_norm: 1.0
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+fp16: false
+bf16: true
+bf16_full_eval: true
+
+output_dir: ../../../../../../checkpoint/webqsp/kgqa_answer/llama31_8b_sft
+logging_steps: 10
+save_strategy: steps
+save_steps: 100
+save_total_limit: 10
+eval_strategy: steps
+eval_steps: 100
+load_best_model_at_end: false
+metric_for_best_model: eval_loss
+
+report_to: none
+run_name: llama31-8b-kgqa_answer_webqsp-sft
+logging_dir: ../../../../../../checkpoint/webqsp/kgqa_answer/llama31_8b_sft/logs
+
+seed: 42
+data_seed: 42
+remove_unused_columns: false
+include_num_input_tokens_seen: true
+packing: false
+resume_from_checkpoint: null

@@ -1,0 +1,5 @@
+interaction:
+  - name: "webqsp_retriever_grpo"
+    class_name: "rl.webqsp_retriever_interaction.WebQSPRetrieverInteraction"
+    config:
+      builder_module_path: build_grpo_data.py

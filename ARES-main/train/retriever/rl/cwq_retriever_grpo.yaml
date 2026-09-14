@@ -1,0 +1,88 @@
+hydra:
+  searchpath:
+    - pkg://verl.trainer.config
+
+defaults:
+  - ppo_trainer
+  - _self_
+
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+
+reward:
+  num_workers: 8
+  custom_reward_function:
+    path: webqsp_retriever_grpo_reward.py
+    name: compute_score
+    reward_kwargs:
+      remote_answer_timeout_sec: ${reward.remote_evaluator.timeout_sec}
+  reward_manager:
+    name: naive
+  remote_evaluator:
+    mode: kbqa_scored_200_corrected
+    prompt_mode: scored_200
+    llm_mode: sys_icl_dc
+    timeout_sec: 60.0
+
+data:
+  train_files: [data/cwq/train.jsonl]
+  val_files: [data/cwq/val.jsonl]
+  prompt_key: prompt
+  reward_fn_key: data_source
+  train_batch_size: 64
+  max_prompt_length: 4096
+  max_response_length: 4096
+  shuffle: false
+  filter_overlong_prompts: true
+  truncation: error
+  dataloader_num_workers: 4
+
+actor_rollout_ref:
+  model:
+    path: ~/.cache/huggingface/model/Qwen3-4B
+    use_shm: false
+    lora_adapter_path: ../../../../checkpoint/cwq/retriever_sft/qwen3-4b-sft_cwq/checkpoint-1200
+    lora_rank: 64
+    lora_alpha: 128
+    use_remove_padding: true
+    enable_gradient_checkpointing: true
+  actor:
+    optim:
+      lr: 2e-6
+    ppo_mini_batch_size: 64
+    ppo_micro_batch_size_per_gpu: 4
+    use_kl_loss: true
+    kl_loss_coef: 0.003
+    kl_loss_type: low_var_kl
+    entropy_coeff: 0.001
+  rollout:
+    name: vllm
+    n: 4
+    tensor_model_parallel_size: 1
+    gpu_memory_utilization: 0.8
+    load_format: safetensors
+    layered_summon: true
+    log_prob_micro_batch_size_per_gpu: 4
+    prompt_length: ${data.max_prompt_length}
+    response_length: ${data.max_response_length}
+    multi_turn:
+      enable: true
+      interaction_config_path: webqsp_retriever_interaction_config.yaml
+      max_user_turns: 40
+      max_assistant_turns: 40
+    agent:
+      default_agent_loop: tool_agent
+  ref:
+    log_prob_micro_batch_size_per_gpu: 4
+
+trainer:
+  project_name: cwq_retriever_grpo
+  experiment_name: qwen3_4b_grpo_cwq
+  logger: wandb
+  nnodes: 1
+  n_gpus_per_node: 4
+  save_freq: 20
+  test_freq: 1000
+  total_epochs: 1
+  default_local_dir: ../../../../checkpoint/cwq/retriever_grpo/qwen3-4b-grpo
